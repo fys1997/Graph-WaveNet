@@ -26,8 +26,9 @@ parser.add_argument('--weight_decay',type=float,default=0.0001,help='weight deca
 parser.add_argument('--epochs',type=int,default=100,help='')
 parser.add_argument('--print_every',type=int,default=50,help='')
 #parser.add_argument('--seed',type=int,default=99,help='random seed')
-parser.add_argument('--save',type=str,default='./garage/metr',help='save path')
+parser.add_argument('--save',type=str,default='modelSave/metr.pth',help='save path')
 parser.add_argument('--expid',type=int,default=1,help='experiment id')
+parser.add_argument('--ConvTxt', type=str, default='ConvTxt/BJ-Conv.txt', help="store the converge time")
 
 args = parser.parse_args()
 
@@ -66,6 +67,10 @@ def main():
     his_loss =[]
     val_time = []
     train_time = []
+    best_valid_loss = 10000
+
+    f = open(args.ConvTxt, "w")
+    iterNum = 1
     for i in range(1,args.epochs+1):
         #if i % 10 == 0:
             #lr = max(0.000002,args.learning_rate * (0.1 ** (i // 10)))
@@ -88,6 +93,26 @@ def main():
             if iter % args.print_every == 0 :
                 log = 'Iter: {:03d}, Train Loss: {:.4f}, Train MAPE: {:.4f}, Train RMSE: {:.4f}'
                 print(log.format(iter, train_loss[-1], train_mape[-1], train_rmse[-1]),flush=True)
+            valid_loss = []
+            valid_mape = []
+            valid_rmse = []
+
+            for iter, (x, y) in enumerate(dataloader['val_loader'].get_iterator()):
+                testx = torch.Tensor(x).to(device)
+                testx = testx.transpose(1, 3)
+                testy = torch.Tensor(y).to(device)
+                testy = testy.transpose(1, 3)
+                metrics = engine.eval(testx, testy[:, 0, :, :])
+                valid_loss.append(metrics[0])
+                valid_mape.append(metrics[1])
+                valid_rmse.append(metrics[2])
+
+            mvalid_loss = np.mean(valid_loss)
+            mvalid_mape = np.mean(valid_mape)
+            mvalid_rmse = np.mean(valid_rmse)
+            string = str(iterNum) + " " + str(mvalid_loss) + " " + str(mvalid_rmse) + " " + str(mvalid_mape) + "\n"
+            f.writelines(string)
+            iterNum = iterNum + 1
         t2 = time.time()
         train_time.append(t2-t1)
         #validation
@@ -121,7 +146,12 @@ def main():
 
         log = 'Epoch: {:03d}, Train Loss: {:.4f}, Train MAPE: {:.4f}, Train RMSE: {:.4f}, Valid Loss: {:.4f}, Valid MAPE: {:.4f}, Valid RMSE: {:.4f}, Training Time: {:.4f}/epoch'
         print(log.format(i, mtrain_loss, mtrain_mape, mtrain_rmse, mvalid_loss, mvalid_mape, mvalid_rmse, (t2 - t1)),flush=True)
-        torch.save(engine.model.state_dict(), args.save+"_epoch_"+str(i)+"_"+str(round(mvalid_loss,2))+".pth")
+        if best_valid_loss<mvalid_loss:
+            torch.save(engine.model.state_dict(), args.save)
+            print("best model saved")
+            best_valid_loss = mvalid_loss
+
+    f.close()
     print("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
     print("Average Inference Time: {:.4f} secs".format(np.mean(val_time)))
 
