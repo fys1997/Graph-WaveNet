@@ -5,6 +5,7 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+import torch.nn.functional as F
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--device',type=str,default='cuda:3',help='')
@@ -24,7 +25,7 @@ parser.add_argument('--learning_rate',type=float,default=0.001,help='learning ra
 parser.add_argument('--dropout',type=float,default=0.3,help='dropout rate')
 parser.add_argument('--weight_decay',type=float,default=0.0001,help='weight decay rate')
 parser.add_argument('--checkpoint',type=str,help='')
-parser.add_argument('--plotheatmap',type=str,default='True',help='')
+parser.add_argument('--plotheatmap',type=str,default='False',help='')
 
 
 args = parser.parse_args()
@@ -60,7 +61,7 @@ def main():
     realy = realy.transpose(1,3)[:,0,:,:]
 
     for iter, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
-        testx = torch.Tensor(x).to(device)
+        testx = F.dropout3d(torch.Tensor(x).to(device),p=args.dropout)
         testx = testx.transpose(1,3)
         with torch.no_grad():
             preds = model(testx).transpose(1,3)
