@@ -58,14 +58,24 @@ def main():
     scaler = dataloader['scaler']
     outputs = []
     realy = torch.Tensor(dataloader['y_test']).to(device)
-    realy = realy.transpose(1,3)[:,0,:,:]
+    realy = realy.transpose(1,3)[:,0,:,:] # batch*N*T
 
+    mae = []
+    rmse = []
+    mape = []
     for iter, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
         testx = F.dropout3d(torch.Tensor(x).to(device),p=args.dropout)
         testx = testx.transpose(1,3)
+        testy = y[...,0] # batch*T*N
         with torch.no_grad():
-            preds = model(testx).transpose(1,3)
+            preds = model(testx).transpose(1,3) # batch*T*N*1
         outputs.append(preds.squeeze())
+        metrics = util.metric(preds.squeeze(), testy)
+        mae.append(metrics[0])
+        rmse.append(metrics[1])
+        mape.append(metrics[2])
+    log = 'Test average loss: {:.4f} Test average mape: {:.4f} Test average rmse: {:.4f}'
+    print(log.format(np.mean(mae), np.mean(mape), np.mean(rmse)), flush=True)
 
     yhat = torch.cat(outputs,dim=0)
     yhat = yhat[:realy.size(0),...]
