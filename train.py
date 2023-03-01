@@ -69,8 +69,6 @@ def main():
     train_time = []
     best_valid_loss = 10000
 
-    f = open(args.ConvTxt, "w")
-    iterNum = 1
     for i in range(1,args.epochs+1):
         #if i % 10 == 0:
             #lr = max(0.000002,args.learning_rate * (0.1 ** (i // 10)))
@@ -90,29 +88,6 @@ def main():
             train_loss.append(metrics[0])
             train_mape.append(metrics[1])
             train_rmse.append(metrics[2])
-            if iter % args.print_every == 0 :
-                log = 'Iter: {:03d}, Train Loss: {:.4f}, Train MAPE: {:.4f}, Train RMSE: {:.4f}'
-                print(log.format(iter, train_loss[-1], train_mape[-1], train_rmse[-1]),flush=True)
-                valid_loss = []
-                valid_mape = []
-                valid_rmse = []
-
-                for iter, (x, y) in enumerate(dataloader['val_loader'].get_iterator()):
-                    testx = torch.Tensor(x).to(device)
-                    testx = testx.transpose(1, 3)
-                    testy = torch.Tensor(y).to(device)
-                    testy = testy.transpose(1, 3)
-                    metrics = engine.eval(testx, testy[:, 0, :, :])
-                    valid_loss.append(metrics[0])
-                    valid_mape.append(metrics[1])
-                    valid_rmse.append(metrics[2])
-
-                mvalid_loss = np.mean(valid_loss)
-                mvalid_mape = np.mean(valid_mape)
-                mvalid_rmse = np.mean(valid_rmse)
-                string = str(iterNum) + " " + str(mvalid_loss) + " " + str(mvalid_rmse) + " " + str(mvalid_mape) + "\n"
-                f.writelines(string)
-                iterNum = iterNum + 1
 
         t2 = time.time()
         train_time.append(t2-t1)
@@ -151,14 +126,12 @@ def main():
             torch.save(engine.model.state_dict(), args.save)
             print("best model saved")
             best_valid_loss = mvalid_loss
-
-    f.close()
     print("Average Training Time: {:.4f} secs/epoch".format(np.mean(train_time)))
     print("Average Inference Time: {:.4f} secs".format(np.mean(val_time)))
 
     #testing
     bestid = np.argmin(his_loss)
-    engine.model.load_state_dict(torch.load(args.save+"_epoch_"+str(bestid+1)+"_"+str(round(his_loss[bestid],2))+".pth"))
+    engine.model.load_state_dict(torch.load(args.save))
 
 
     outputs = []
@@ -195,7 +168,6 @@ def main():
 
     log = 'On average over 12 horizons, Test MAE: {:.4f}, Test MAPE: {:.4f}, Test RMSE: {:.4f}'
     print(log.format(np.mean(amae),np.mean(amape),np.mean(armse)))
-    torch.save(engine.model.state_dict(), args.save+"_exp"+str(args.expid)+"_best_"+str(round(his_loss[bestid],2))+".pth")
 
 
 
