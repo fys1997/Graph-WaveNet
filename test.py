@@ -67,6 +67,7 @@ def main():
         testx = F.dropout3d(torch.Tensor(x).to(device),p=args.dropout)
         testx = testx.transpose(1,3)
         testy = y[...,0] # batch*T*N
+        testy = torch.Tensor(testy).to(device)
         with torch.no_grad():
             preds = model(testx).transpose(1,3) # batch*T*N*1
         outputs.append(preds.squeeze())
