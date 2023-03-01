@@ -69,12 +69,12 @@ def main():
         testy = y[...,0] # batch*T*N
         testy = torch.Tensor(testy).to(device)
         testy = testy.transpose(1, 2)
-        print("label:"+testy.shape)
+        print("label:",testy.shape)
         with torch.no_grad():
             preds = model(testx).transpose(1,3) # batch*T*N*1
         outputs.append(preds.squeeze())
         preds = scaler.inverse_transform(preds)
-        print("preds:"+preds.shape)
+        print("preds:",preds.shape)
         metrics = util.metric(preds.squeeze(), testy)
         mae.append(metrics[0])
         rmse.append(metrics[1])
