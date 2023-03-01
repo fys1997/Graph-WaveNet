@@ -64,13 +64,17 @@ def main():
     rmse = []
     mape = []
     for iter, (x, y) in enumerate(dataloader['test_loader'].get_iterator()):
-        testx = F.dropout3d(torch.Tensor(x).to(device),p=args.dropout)
-        testx = testx.transpose(1,3)
+        testx = F.dropout3d(torch.Tensor(x).to(device),p=args.dropout) # batch*T*N*2
+        testx = testx.transpose(1,3) # batch*2*T*N
         testy = y[...,0] # batch*T*N
         testy = torch.Tensor(testy).to(device)
+        testy = testy.transpose(1, 2)
+        print("label:"+testy.shape)
         with torch.no_grad():
             preds = model(testx).transpose(1,3) # batch*T*N*1
         outputs.append(preds.squeeze())
+        preds = scaler.inverse_transform(preds)
+        print("preds:"+preds.shape)
         metrics = util.metric(preds.squeeze(), testy)
         mae.append(metrics[0])
         rmse.append(metrics[1])

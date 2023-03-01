@@ -14,7 +14,7 @@ class trainer():
         self.model.train()
         self.optimizer.zero_grad()
         input = nn.functional.pad(input,(1,0,0,0))
-        output = self.model(input)
+        output = self.model(input) # batch*1*N*T
         output = output.transpose(1,3)
         #output = [batch_size,12,num_nodes,1]
         real = torch.unsqueeze(real_val,dim=1)
